@@ -19,7 +19,7 @@ def main():
     host = os.getenv('HUB_HOST', '0.0.0.0')
     port = int(os.getenv('HUB_PORT', 3001))
     reload = os.getenv('HUB_RELOAD', 'true').lower() == 'true'
-    log_level = os.getenv('HUB_LOG_LEVEL', 'debug')
+    log_level = os.getenv('HUB_LOG_LEVEL', 'info')
     
     print(f"Starting Security Hub Backend on {host}:{port}")
     print(f"Reload: {reload}, Log Level: {log_level}")
