@@ -3,6 +3,7 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 load_dotenv()
 import glob
+import cv2
 
 class Config:
     """Configuration class for hub-backend"""
@@ -58,13 +59,16 @@ class Config:
     def get_available_cameras():
         devices = sorted(glob.glob('/dev/video*'))
         cameras = []
-        for idx, device in enumerate(devices):
-            cameras.append({
-                "id": f"usb{idx}",
-                "type": "usb",
-                "device_index": device,  # Use device path
-                "name": f"Camera {idx}",
-            })
+        for device in devices:
+            cap = cv2.VideoCapture(device)
+            if cap.isOpened():
+                cameras.append({
+                    "id": f"usb{len(cameras)}",
+                    "type": "usb",
+                    "device_index": device,
+                    "name": f"Camera {len(cameras)}"
+                })
+                cap.release()
         return cameras
 
     # List of available cameras
