@@ -2,6 +2,7 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 load_dotenv()
+import glob
 
 class Config:
     """Configuration class for hub-backend"""
@@ -51,7 +52,24 @@ class Config:
     # MongoDB Configuration
     MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
     ARM_STATUS_COLLECTION: str = os.getenv("ARM_STATUS_COLLECTION", "arm_status")
-    
+
+    # Automatically detect available camera devices
+    @staticmethod
+    def get_available_cameras():
+        devices = sorted(glob.glob('/dev/video*'))
+        cameras = []
+        for idx, device in enumerate(devices):
+            cameras.append({
+                "id": f"usb{idx}",
+                "type": "usb",
+                "device_index": device,  # Use device path
+                "name": f"Camera {idx}",
+            })
+        return cameras
+
+    # List of available cameras
+    CAMERAS = get_available_cameras.__func__()
+
     @classmethod
     def to_dict(cls) -> Dict[str, Any]:
         """Convert config to dictionary for API responses"""
@@ -73,7 +91,8 @@ class Config:
             "camera": {
                 "timeout": cls.CAMERA_TIMEOUT,
                 "retry_attempts": cls.CAMERA_RETRY_ATTEMPTS,
-                "capture_path": cls.CAMERA_CAPTURE_PATH
+                "capture_path": cls.CAMERA_CAPTURE_PATH,
+                "cameras": cls.CAMERAS,
             },
             "health": {
                 "check_interval": cls.HEALTH_CHECK_INTERVAL,

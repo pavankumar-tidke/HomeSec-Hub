@@ -6,6 +6,7 @@ import cv2
 import numpy as np
 from .kafka_producer import KafkaProducer
 from .models import CameraInfo, CameraEvent
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -20,67 +21,19 @@ class CameraController:
     
     def _initialize_cameras(self):
         """Initialize cameras for your home setup with USB cameras"""
-        # Define your cameras based on your setup
-        cameras_config = [
-            {
-                "id": "cam_entrance_gate",
-                "name": "Entrance Gate Camera",
-                "location": "Entrance Gate",
-                "usb_device": "/dev/video0",  # USB camera device
-                "resolution": "1920x1080",
-                "has_audio": True,
-                "audio_device": "hw:1,0"  # USB microphone
-            },
-            {
-                "id": "cam_main_door",
-                "name": "Main Door Camera",
-                "location": "Main Door",
-                "usb_device": "/dev/video1",
-                "resolution": "1920x1080",
-                "has_audio": True,
-                "audio_device": "hw:2,0"
-            },
-            {
-                "id": "cam_garage",
-                "name": "Garage Camera",
-                "location": "Garage",
-                "usb_device": "/dev/video2",
-                "resolution": "1920x1080",
-                "has_audio": True,
-                "audio_device": "hw:3,0"
-            },
-            {
-                "id": "cam_backyard",
-                "name": "Backyard Camera",
-                "location": "Backyard",
-                "usb_device": "/dev/video3",
-                "resolution": "1920x1080",
-                "has_audio": True,
-                "audio_device": "hw:4,0"
-            },
-            {
-                "id": "cam_garden",
-                "name": "Garden Camera",
-                "location": "Garden Area",
-                "usb_device": "/dev/video4",
-                "resolution": "1920x1080",
-                "has_audio": True,
-                "audio_device": "hw:5,0"
-            }
-        ]
-        
-        for camera in cameras_config:
+        # Use auto-detected cameras from config
+        for camera in Config.CAMERAS:
             self.cameras[camera["id"]] = CameraInfo(
                 camera_id=camera["id"],
-                name=camera["name"],
-                location=camera["location"],
+                name=camera.get("name", camera["id"]),
+                location=camera.get("location", "Unknown"),
                 status="online",
                 stream_url=f"http://192.168.1.200:8000/stream/{camera['id']}",
                 thumbnail_url=f"http://192.168.1.200:8000/thumbnails/{camera['id']}.jpg",
-                resolution=camera["resolution"],
+                resolution=camera.get("resolution", "Unknown"),
                 last_frame=datetime.utcnow(),
-                has_audio=camera["has_audio"],
-                audio_enabled=camera["has_audio"]
+                has_audio=camera.get("has_audio", False),
+                audio_enabled=camera.get("has_audio", False)
             )
     
     async def trigger_camera(self, camera_id: str, capture_type: str = "photo", duration: int = 5, include_audio: bool = True) -> Dict:

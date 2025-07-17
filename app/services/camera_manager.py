@@ -1,6 +1,7 @@
 import cv2
 import os
 from typing import List, Dict
+from ..config import Config
 
 # Optional: Pi Camera support
 try:
@@ -13,25 +14,10 @@ except ImportError:
 RTSP_CAMERAS = []  # Example: [{"id": "rtsp1", "url": "rtsp://...", "name": "Front Door", ...}]
 
 
-def list_cameras(max_cams=5) -> List[Dict]:
+def list_cameras() -> List[Dict]:
     cams = []
-    # USB Cameras (OpenCV)
-    for i in range(max_cams):
-        cap = cv2.VideoCapture(i)
-        if cap.isOpened():
-            width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            fps = int(cap.get(cv2.CAP_PROP_FPS)) or 30
-            cams.append({
-                "id": f"usb{i}",
-                "name": f"USB Camera {i}",
-                "type": "usb",
-                "status": "online",
-                "resolution": f"{width}x{height}",
-                "fps": fps,
-                "device_index": i
-            })
-            cap.release()
+    # USB Cameras (from config)
+    cams.extend(Config.CAMERAS)
     # Pi Camera (picamera2)
     if PI_CAMERA_AVAILABLE:
         try:

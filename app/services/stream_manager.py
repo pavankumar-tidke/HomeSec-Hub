@@ -18,7 +18,13 @@ def start_stream(cam_id, cam_type, device_index=None, rtsp_url=None, audio_devic
         return
     
     if cam_type == "usb":
-        video_input = f"/dev/video{device_index}"
+        # device_index may be a device path (str) or int
+        if isinstance(device_index, str):
+            video_input = device_index
+        elif isinstance(device_index, int):
+            video_input = f"/dev/video{device_index}"
+        else:
+            return
         video_args = ["-f", "v4l2", "-i", video_input]
         audio_args = []
         if audio_device:
