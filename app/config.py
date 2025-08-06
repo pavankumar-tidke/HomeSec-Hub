@@ -45,13 +45,15 @@ class Config:
     # Network Configuration
     PING_TIMEOUT: int = int(os.getenv("PING_TIMEOUT", "5"))
     PING_COUNT: int = int(os.getenv("PING_COUNT", "3"))
+    # EC2_PROXY_HOST: str = os.getenv("EC2_PROXY_HOST", "ec2-proxy-host")
+    EC2_PROXY_HOST: str = '192.168.1.51'
     
     # Logging Configuration
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
     LOG_FORMAT: str = os.getenv("LOG_FORMAT", "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     
     # MongoDB Configuration
-    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017")
+    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb+srv://pavankumartidke12345:afph7ui1gWiXZIqO@cluster0.tdjcgf5.mongodb.net/homesec")
     ARM_STATUS_COLLECTION: str = os.getenv("ARM_STATUS_COLLECTION", "arm_status")
 
     # Automatically detect available camera devices
@@ -110,7 +112,8 @@ class Config:
             },
             "network": {
                 "ping_timeout": cls.PING_TIMEOUT,
-                "ping_count": cls.PING_COUNT
+                "ping_count": cls.PING_COUNT,
+                "ec2_proxy_host": cls.EC2_PROXY_HOST
             },
             "mongodb": {
                 "uri": cls.MONGO_URI,

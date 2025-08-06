@@ -55,12 +55,31 @@ class HealthcheckService:
 
     async def _check_network_status(self) -> Optional[Dict[str, Any]]:
         try:
-            interfaces = list(psutil.net_if_addrs().keys())
+            import socket
+            import urllib.request
+            interfaces = []
+            for name, addrs in psutil.net_if_addrs().items():
+                ip = None
+                for addr in addrs:
+                    if addr.family == socket.AF_INET:
+                        ip = addr.address
+                        break
+                interfaces.append({
+                    "interface": name,
+                    "ip_address": ip
+                })
             internet_connected = await self._test_internet_connectivity()
             speed_mbps = None
+            # Get public IP
+            try:
+                with urllib.request.urlopen('https://api.ipify.org') as response:
+                    public_ip = response.read().decode('utf-8')
+            except Exception:
+                public_ip = None
             return {
                 "internet_connected": internet_connected,
                 "interfaces": interfaces,
+                "public_ip": public_ip,
                 "speed_mbps": speed_mbps,
                 "status": "connected" if internet_connected else "disconnected"
             }

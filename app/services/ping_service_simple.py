@@ -31,29 +31,31 @@ class PingService:
             app_web_host = "localhost"
             app_backend_host = "localhost"
             hub_backend_host = "localhost"
+            ec2_proxy_host = config.EC2_PROXY_HOST
             # Real pings
             app_backend_ping = await self._ping_host(app_backend_host)
             self.logger.debug(f"app_backend_ping: {app_backend_ping}")
 
             hub_backend_ping = await self._ping_host(hub_backend_host)
+            ec2_proxy_ping = await self._ping_host(ec2_proxy_host)
             # App web node
-            app_web = {
-                "host": app_web_host,
-                "status": "connected",
-                "latency_to_app_backend_ms": None,
-                "packet_loss": 0,
-                "success": True
-            }
+            # app_web = {
+            #     "host": app_web_host,
+            #     "status": "Link",
+            #     "latency_to_app_backend_ms": None,
+            #     "packet_loss": 0,
+            #     "success": True
+            # }
             app_backend = {
                 "host": app_backend_host,
-                "status": "connected" if app_backend_ping["success"] else "disconnected",
+                "status": "Link" if app_backend_ping["success"] else "UnLink",
                 "latency_to_hub_backend_ms": app_backend_ping.get("latency_ms"),
                 "packet_loss": app_backend_ping.get("packet_loss", 0),
                 "success": app_backend_ping["success"]
             }
             hub_backend = {
                 "host": hub_backend_host,
-                "status": "connected" if hub_backend_ping["success"] else "disconnected",
+                "status": "Link" if hub_backend_ping["success"] else "UnLink",
                 "latency_to_mqtt_sensors_ms": None,
                 "packet_loss": hub_backend_ping.get("packet_loss", 0),
                 "success": hub_backend_ping["success"]
@@ -68,15 +70,22 @@ class PingService:
                     "netmask": "255.255.255.0", "status": "up"}
             ]
             internet_ping = await self._ping_internet()
+            # Latency summary
+            backend_to_hub_latency = ec2_proxy_ping.get("latency_ms")
+            hub_to_sensors_latencies = []  # TODO: Fill with real sensor pings if available
+            if hub_to_sensors_latencies:
+                average_sensor_latency = round(sum(hub_to_sensors_latencies) / len(hub_to_sensors_latencies), 2)
+            else:
+                average_sensor_latency = backend_to_hub_latency
             latency_summary = {
-                "app_to_backend": None,
-                "backend_to_hub": app_backend_ping.get("latency_ms"),
-                "hub_to_sensors": [],
-                "average_sensor_latency": None
+                "app_to_backend": None,  # Only frontend can measure this
+                "backend_to_hub": backend_to_hub_latency,
+                "hub_to_sensors": hub_to_sensors_latencies,
+                "average_sensor_latency": average_sensor_latency
             }
             return {
                 "system_status": {
-                    "app_web": app_web,
+                    # "app_web": app_web,
                     "app_backend": app_backend,
                     "hub_backend": hub_backend,
                     "mqtt_sensors": mqtt_sensors
@@ -86,7 +95,7 @@ class PingService:
                     "internet_ping": internet_ping
                 },
                 "latency_summary": latency_summary,
-                "overall_status": "connected" if app_backend["success"] and hub_backend["success"] else "partially_connected",
+                "overall_status": "Link" if app_backend["success"] and hub_backend["success"] else "partially_connected",
                 "timestamp": datetime.utcnow().isoformat()
             }
         except Exception as e:
@@ -145,7 +154,7 @@ class PingService:
                 "success": ping_result["success"],
                 "latency_ms": ping_result.get("latency_ms"),
                 "packet_loss": ping_result.get("packet_loss", 0),
-                "status": "connected" if ping_result["success"] else "disconnected"
+                "status": "Link" if ping_result["success"] else "UnLink"
             }
         except Exception as e:
             self.logger.error(f"App backend ping failed: {e}")
@@ -162,7 +171,7 @@ class PingService:
                 "success": ping_result["success"],
                 "latency_ms": ping_result.get("latency_ms"),
                 "packet_loss": ping_result.get("packet_loss", 0),
-                "status": "connected" if ping_result["success"] else "disconnected"
+                "status": "Link" if ping_result["success"] else "UnLink"
             }
         except Exception as e:
             self.logger.error(f"Internet ping failed: {e}")
@@ -188,7 +197,7 @@ class PingService:
             return {
                 "active_interfaces": active_interfaces,
                 "interface_count": len(active_interfaces),
-                "status": "connected" if active_interfaces else "disconnected"
+                "status": "Link" if active_interfaces else "UnLink"
             }
         except Exception as e:
             self.logger.error(f"Local connectivity check failed: {e}")
@@ -297,29 +306,29 @@ class PingService:
         internet = ping_data.get("internet_ping", {})
         
         if app_backend.get("error") and internet.get("error"):
-            return "disconnected"
+            return "UnLink"
         elif app_backend.get("error") or internet.get("error"):
             return "partial"
         else:
-            return "connected" 
+            return "Link" 
 
     async def _ping_mqtt_device_real(self) -> dict:
         """
         Ping an MQTT device and measure latency. Returns dict with latency and status.
         """
         if mqtt is None:
-            return {"error": "paho-mqtt not installed", "status": "disconnected", "latency": None}
+            return {"error": "paho-mqtt not installed", "status": "UnLink", "latency": None}
         broker = "127.0.0.1"
         device_id = "test_device"
         ping_topic = f"device/{device_id}/ping"
         pong_topic = f"device/{device_id}/pong"
         ping_id = str(uuid.uuid4())
-        result = {"latency": None, "status": "disconnected"}
+        result = {"latency": None, "status": "UnLink"}
         loop = asyncio.get_event_loop()
         def on_message(client, userdata, msg):
             if msg.topic == pong_topic and msg.payload.decode() == ping_id:
                 result["latency"] = (time.time() - start) * 1000  # ms
-                result["status"] = "connected"
+                result["status"] = "Link"
                 client.disconnect()
         def run_ping():
             client = mqtt.Client()

@@ -7,7 +7,7 @@ from ..config import config
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
-
+ 
 # Global service instance
 healthcheck_service = None
 
